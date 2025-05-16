@@ -12,7 +12,7 @@ from fpdf import FPDF
 
 logger = logging.getLogger(__name__)
 
-FormatFile = Literal["png", "jpeg", "svg", "html"]
+FormatFile = Literal["png", "jpeg", "svg", "html", "xlsx", "csv", "pdf"]
 
 class S3Client:
     """
@@ -138,7 +138,6 @@ class S3Client:
             object_name (str): The name of the S3 object.
 
         Keyword Args:
-            mimetypes (str): MIME type of the image. Defaults to 'image/jpeg'.
             format_file (str): Format of the image. Defaults to 'png'.
 
         Returns:
@@ -157,8 +156,21 @@ class S3Client:
             if object_name is None:
                 raise Exception("Object name is None")
 
-            mimetypes = kwargs.get("mimetypes", "image/svg+xml")
             format_file : FormatFile = kwargs.get("format_file", "svg")
+            mimetypes = "image/svg+xml"
+            
+            if format_file not in ["png", "jpeg", "svg", "html"]:
+                raise Exception("Invalid format_file provided. Supported formats are: png, jpeg, svg, html")
+            if format_file == "png":
+                mimetypes = "image/png"
+            elif format_file == "jpeg":
+                mimetypes = "image/jpeg"
+            elif format_file == "svg":
+                mimetypes = "image/svg+xml"
+            elif format_file == "html":
+                mimetypes = "text/html"
+            else:
+                raise Exception("Invalid MIME type provided")
 
             # Get S3 client and resource
             s3_client = self._get_s3_client()
@@ -189,7 +201,9 @@ class S3Client:
         Args:
             df (DataFrame): The DataFrame to upload.
             **kwargs (Any): Additional keyword arguments for AWS credentials, bucket name, and object name.
-
+            Keyword Args:
+                format_file (str): Format of the file. Defaults to 'xlsx'.
+        
         Returns:
             str: Pre-signed URL for the uploaded file.
 
@@ -205,8 +219,21 @@ class S3Client:
             object_name = args[1] if len(args) > 1 else None
             if object_name is None:
                 raise Exception("Object name is None")
+            
+            format_file : FormatFile = kwargs.get("format_file", "csv")
 
-            mimetypes = kwargs.get("mimetypes", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            if format_file not in ["xlsx", "csv", "pdf"]:
+                raise Exception("Invalid format_file provided. Supported formats are: xlsx, csv, pdf")
+            
+            if format_file == "xlsx":
+                mimetypes = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            elif format_file == "csv":
+                mimetypes = "text/csv"
+            elif format_file == "pdf":
+                mimetypes = "application/pdf"
+            else:
+                raise Exception("Invalid MIME type provided")
+
             s3_client = self._get_s3_client()
             s3_resource = self._get_s3_resource()
 
@@ -230,8 +257,6 @@ class S3Client:
                     ax.axis('off')
                     table(ax, df, loc='center', cellLoc='center', colWidths=[0.1] * len(df.columns))
                     plt.savefig(file_buffer, format='pdf')
-                if ext == "":
-                    raise Exception("Invalid MIME type provided")
 
                 file_buffer.seek(0)
                 # Append the file extension to the object name
@@ -272,16 +297,13 @@ class S3Client:
             logger.error(f"Error deleting files: {str(e)}")
             raise Exception(f"Error deleting files: {str(e)}")
 
-    def upload_to_pdf(self, *args : Any, **kwargs: Any) -> str:
+    def upload_to_pdf(self, *args : Any) -> str:
         """
         Export the given text as a PDF and upload it to the S3 bucket.
 
         Args:
             text (str): The text to write in the PDF.
             object_name (str): The name of the S3 object.
-            **kwargs (Any): Additional keyword arguments for AWS credentials, bucket name, and object name.
-        Keyword Args:
-            mimetypes (str): MIME type of the PDF. Defaults to 'application/pdf'.
         Raises:
             Exception: If there is an error exporting the PDF.
         Returns:
@@ -296,7 +318,7 @@ class S3Client:
             if object_name is None:
                 raise Exception("Object name is None")
 
-            mimetypes = kwargs.get("mimetypes", "application/pdf")
+            mimetypes = "application/pdf"
             s3_client = self._get_s3_client()
             s3_resource = self._get_s3_resource()
             

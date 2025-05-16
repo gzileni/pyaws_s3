@@ -1,76 +1,87 @@
-# QI_AWS_S3
+# PYAWS_S3
 
-## Descrizione
+## Description
 
-`S3Client` è una classe Python che semplifica l'interazione con AWS S3 per il caricamento, la gestione e la cancellazione di file. Supporta upload di immagini, DataFrame, PDF e la generazione di URL pre-firmati.
+`S3Client` is a Python class that simplifies interaction with AWS S3 for uploading, managing, and deleting files. It supports uploading images, DataFrames, PDFs, and generating pre-signed URLs.
 
-## Installazione
+## Installation
 
-Assicurati di avere installato i seguenti pacchetti:
+Make sure you have installed:
 
 ```bash
-pip install boto3 aioboto3 pandas matplotlib fpdf
+pip install pyaws_s3
 ```
 
-## Utilizzo
+### Env Variabiles
 
-### Inizializzazione
+Make sure to add this environment variable:
 
-Puoi inizializzare la classe passando le credenziali AWS come parametri o tramite variabili d'ambiente:
+```bash
+AWS_ACCESS_KEY_ID=<Your Access Key Id>
+AWS_SECRET_ACCESS_KEY=<Your Secrect Access Key>
+AWS_REGION=<Your Region>
+AWS_BUCKET_NAME=<Your Bucket Name>
+```bash
+
+## Usage
+
+### Initialization
+
+You can initialize the class by passing AWS credentials as parameters or via environment variables:
 
 ```python
 from s3_client import S3Client
 
 s3 = S3Client(
-    aws_access_key_id="YOUR_KEY",
-    aws_secret_access_key="YOUR_SECRET",
-    region_name="YOUR_REGION",
-    bucket_name="YOUR_BUCKET"
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    region_name=os.getenv("AWS_REGION"),
+    bucket_name=os.getenv("AWS_BUCKET_NAME")
 )
 ```
 
-### Metodi principali
+### Main Methods
 
-#### 1. `upload_image(fig, object_name, mimetypes="image/svg+xml", format_file="svg")`
+#### 1. `upload_image(fig, object_name, format_file=Literal["png", "jpeg", "svg", "html"])`
 
-Carica una figura (ad esempio Matplotlib o Plotly) su S3 come immagine (svg, png, jpeg, html).
+Uploads a figure (e.g., Matplotlib or Plotly) to S3 as an image (svg, png, jpeg, html).
 
 ```python
-url = s3.upload_image(fig, "folder/image.svg", mimetypes="image/svg+xml", format_file="svg")
+url = s3.upload_image(fig, "folder/image.svg", format_file="svg")
 ```
 
-#### 2. `upload_from_dataframe(df, object_name, mimetypes="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")`
+#### 2. `upload_from_dataframe(df, object_name, format_file=Literal["xlsx", "csv", "pdf"])`
 
-Carica un DataFrame su S3 come file Excel, CSV o PDF.
+Uploads a DataFrame to S3 as an Excel, CSV, or PDF file.
 
 ```python
-url = s3.upload_from_dataframe(df, "folder/data", mimetypes="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+url = s3.upload_from_dataframe(df, "folder/data", format_file="csv")
 ```
 
-#### 3. `upload_to_pdf(text, object_name, mimetypes="application/pdf")`
+#### 3. `upload_to_pdf(text, object_name)`
 
-Esporta del testo in PDF e lo carica su S3.
+Exports text to PDF and uploads it to S3.
 
 ```python
-url = s3.upload_to_pdf("Testo da esportare", "folder/file.pdf")
+url = s3.upload_to_pdf("Text to export", "folder/file.pdf")
 ```
 
 #### 4. `await delete_all(filter=None)`
 
-Cancella tutti i file dal bucket, opzionalmente filtrando per nome.
+Deletes all files from the bucket, optionally filtering by name.
 
 ```python
 import asyncio
-await s3.delete_all(filter="folder/")
+await s3.delete_all(filter="your_filter")
 ```
 
-## Note
+## Notes
 
-- Tutti i metodi di upload restituiscono una URL pre-firmata per il download del file.
-- Gestione degli errori integrata con logging.
-- Per l'upload di immagini e DataFrame sono richieste funzioni di utilità (`bytes_from_figure`, `html_from_figure`).
+- All upload methods return a pre-signed URL for downloading the file.
+- Integrated error handling with logging.
+- For uploading images and DataFrames, utility functions are required (`bytes_from_figure`, `html_from_figure`).
 
-## Esempio completo
+## Complete Example
 
 ```python
 import matplotlib.pyplot as plt
