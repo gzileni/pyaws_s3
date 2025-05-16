@@ -1,5 +1,4 @@
 devpi_deploy.sh
-tests/
 .venv/
 dist/
 *.egg-info/
