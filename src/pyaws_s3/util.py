@@ -21,7 +21,10 @@ def bytes_from_figure(f: Figure, **kwargs) -> bytes:
     height = kwargs.get("height", 480)  # The height of the image in pixels
 
     with io.BytesIO() as bytes_buffer:
-        f.write_image(bytes_buffer, format=format_file, width = width, height = height)  # Write the figure to the bytes buffer as a PNG image
+        f.write_image(bytes_buffer, 
+                      format=format_file, 
+                      width = width, 
+                      height = height)  # Write the figure to the bytes buffer as a PNG image
         bytes_buffer.seek(0)  # Reset the buffer position to the beginning
         return bytes_buffer.getvalue()  # Return the bytes data
 

@@ -3,11 +3,11 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "qi_aws_s3"
+name = "pyaws_s3"
 version = "1.0.0"
 description = "A Python package for AWS S3 utilities"
 authors = [
-    { name="Giuseppe Zileni", email="g.zileni@quest-it.com" }
+    { name="Giuseppe Zileni", email="giuseppe.zileni@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.7"
