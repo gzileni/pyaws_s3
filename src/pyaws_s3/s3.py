@@ -343,4 +343,66 @@ class S3Client:
         except Exception as e:
             logger.error(f"Error exporting PDF: {str(e)}")
             raise Exception(f"Error exporting PDF: {str(e)}")
+        
+    def download(self, *args : Any, **kwargs : Any):
+        """
+        Download a file from S3 bucket.
+
+        Args:
+            object_name (str): The name of the S3 object to download.
+            **kwargs (Any): Additional keyword arguments for local path and stream.
+                - local_path (str): Local path to save the downloaded file. If None, the file will be streamed.
+                - stream (bool): If True, the file will be streamed instead of saved locally.
+        Raises:
+            Exception: If there is an error downloading the file.
+        Returns:
+            str: The local path of the downloaded file.
+        """
+        try:
+            object_name = args[0] if len(args) > 0 else None
+            if object_name is None:
+                raise Exception("Object name is None")
+            
+            local_path = kwargs.get("local_path", None)
+            stream = kwargs.get("stream", False)
+            
+            if not stream and local_path is None:
+                raise Exception("Local path is None if stream is False")
+            
+            s3_client = self._get_s3_client()
+            response = s3_client.download_file(self.bucket_name, object_name, local_path)
+            
+            if stream:
+                return response['Body'].read()
+            
+            return local_path
+        except Exception as e:
+            logger.error(f"Error downloading file: {str(e)}")
+            raise Exception(f"Error downloading file: {str(e)}")
+        
+    def list_files(self, *args : Any) -> list[str]:
+        """
+        List all files in the S3 bucket.
+
+        Args:
+            filter (str | None): Optional filter to list specific files. If None, all files will be listed.
+        Raises:
+            Exception: If there is an error listing the files.
+        Returns:
+            list[str]: List of file names in the S3 bucket.
+        """
+        try:
+            filter = args[0] if len(args) > 0 else None
+            s3_client = self._get_s3_client()
+            objects = s3_client.list_objects_v2(Bucket=self.bucket_name)
+
+            # Check if the bucket contains any objects
+            if 'Contents' in objects:
+                return [obj['Key'] for obj in objects['Contents'] if filter in obj['Key']]
+            else:
+                return []
+        except Exception as e:
+            logger.error(f"Error listing files: {str(e)}")
+            raise Exception(f"Error listing files: {str(e)}")
+        
 
