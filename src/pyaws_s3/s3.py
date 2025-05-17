@@ -405,4 +405,24 @@ class S3Client:
             logger.error(f"Error listing files: {str(e)}")
             raise Exception(f"Error listing files: {str(e)}")
         
+    def delete_file(self, *args : Any) -> None: 
+        """
+        Delete a file from the S3 bucket.
+
+        Args:
+            object_name (str): The name of the S3 object to delete.
+        Raises:
+            Exception: If there is an error deleting the file.
+        """
+        try:
+            object_name = args[0] if len(args) > 0 else None
+            if object_name is None:
+                raise Exception("Object name is None")
+            
+            s3_client = self._get_s3_client()
+            s3_client.delete_object(Bucket=self.bucket_name, Key=object_name)
+        except Exception as e:
+            logger.error(f"Error deleting file: {str(e)}")
+            raise Exception(f"Error deleting file: {str(e)}")
+        
 

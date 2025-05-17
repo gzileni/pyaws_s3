@@ -2,7 +2,7 @@
 
 ## Description
 
-`S3Client` is a Python class that simplifies interaction with AWS S3 for uploading, managing, and deleting files. It supports uploading images, DataFrames, PDFs, and generating pre-signed URLs.
+`S3Client` is a Python class that simplifies interaction with AWS S3 for uploading, downloading, managing, and deleting files. It supports uploading images, DataFrames, PDFs, generating pre-signed URLs, downloading files, listing files, and deleting individual files.
 
 ## Installation
 
@@ -12,16 +12,16 @@ Make sure you have installed:
 pip install pyaws_s3
 ```
 
-### Env Variabiles
+### Env Variables
 
-Make sure to add this environment variable:
+Make sure to add these environment variables:
 
 ```bash
 AWS_ACCESS_KEY_ID=<Your Access Key Id>
-AWS_SECRET_ACCESS_KEY=<Your Secrect Access Key>
+AWS_SECRET_ACCESS_KEY=<Your Secret Access Key>
 AWS_REGION=<Your Region>
 AWS_BUCKET_NAME=<Your Bucket Name>
-```bash
+```
 
 ## Usage
 
@@ -75,6 +75,52 @@ import asyncio
 await s3.delete_all(filter="your_filter")
 ```
 
+#### 5. `download(object_name, local_path=None, stream=False)`
+
+Downloads a file from the S3 bucket.
+
+- `object_name` (str): The name of the S3 object to download.
+- `local_path` (str, optional): Local path to save the downloaded file. Required if `stream` is False.
+- `stream` (bool, optional): If True, returns the file content as bytes instead of saving locally.
+
+**Examples:**
+
+Download and save locally:
+
+```python
+local_path = s3.download("folder/image.svg", local_path="downloads/image.svg")
+```
+
+Download as bytes (stream):
+
+```python
+file_bytes = s3.download("folder/image.svg", stream=True)
+```
+
+#### 6. `list_files(filter=None) -> list[str]`
+
+Lists all files in the S3 bucket, optionally filtered by a substring.
+
+- `filter` (str, optional): Only files containing this substring will be listed.
+
+**Example:**
+
+```python
+files = s3.list_files(filter="folder/")
+```
+
+#### 7. `delete_file(object_name)`
+
+Deletes a single file from the S3 bucket.
+
+- `object_name` (str): The name of the S3 object to delete.
+
+**Example:**
+
+```python
+s3.delete_file("folder/image.svg")
+```
+
 ## Notes
 
 - All upload methods return a pre-signed URL for downloading the file.
@@ -96,4 +142,13 @@ s3 = S3Client(bucket_name="my-bucket")
 img_url = s3.upload_image(fig, "test.svg")
 df_url = s3.upload_from_dataframe(df, "mydata")
 pdf_url = s3.upload_to_pdf("Hello PDF", "hello.pdf")
+
+# Download a file
+local_path = s3.download("test.svg", local_path="downloads/test.svg")
+
+# List files
+files = s3.list_files()
+
+# Delete a file
+s3.delete_file("test.svg")
 ```
