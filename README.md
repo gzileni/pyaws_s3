@@ -88,7 +88,7 @@ Downloads a file from the S3 bucket.
 Download and save locally:
 
 ```python
-local_path = s3.download("folder/image.svg", local_path="downloads/image.svg")
+local_path = s3.download("folder/image.svg", local_path="downloads/")
 ```
 
 Download as bytes (stream):
