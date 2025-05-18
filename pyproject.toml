@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyaws_s3"
-version = "1.0.4"
+version = "1.0.6"
 description = "A Python package for AWS S3 utilities"
 authors = [
     { name="Giuseppe Zileni", email="giuseppe.zileni@gmail.com" }
@@ -37,7 +37,7 @@ dependencies = [
     "multidict==6.4.3",
     "narwhals==1.39.1",
     "numpy==2.2.5",
-    "packaging==25.0",
+    "packaging==23.2",
     "pandas==2.2.3",
     "pillow==11.2.1",
     "plotly==6.1.0",
