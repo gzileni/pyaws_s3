@@ -5,9 +5,9 @@ import aioboto3
 import pandas as pd
 import io
 import matplotlib.pyplot as plt
+from plotly.graph_objs import Figure
 from pandas.plotting import table
 from typing import Any, Literal
-from util import bytes_from_figure, html_from_figure
 from fpdf import FPDF
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,48 @@ class S3Client:
         self.aws_secret_access_key = kwargs.get("aws_secret_access_key", os.getenv("AWS_SECRET_ACCESS_KEY"))
         self.region_name = kwargs.get("region_name", os.getenv("AWS_REGION"))
         self.bucket_name = kwargs.get("bucket_name", os.getenv("AWS_BUCKET_NAME"))
+
+    def _bytes_from_figure(self, f: Figure, **kwargs) -> bytes:
+        """
+        Convert a Plotly Figure to a PNG image as bytes.
+
+        Args:
+            f (Figure): The Plotly Figure object to be converted.
+
+        Returns:
+            bytes: The PNG image data as bytes.
+            :param f:  The Plotly Figure object to be converted into a PNG image.
+        """
+
+        format_file = kwargs.get("format_file", "png")  # The format of the image to be converted to
+        width = kwargs.get("width", 640)  # The width of the image in pixels
+        height = kwargs.get("height", 480)  # The height of the image in pixels
+
+        with io.BytesIO() as bytes_buffer:
+            f.write_image(bytes_buffer, 
+                        format=format_file, 
+                        width = width, 
+                        height = height)  # Write the figure to the bytes buffer as a PNG image
+            bytes_buffer.seek(0)  # Reset the buffer position to the beginning
+            return bytes_buffer.getvalue()  # Return the bytes data
+
+    def _html_from_figure(self, f: Figure) -> str:
+        """
+        Convert a Plotly Figure to an HTML string.
+
+        Args:
+            f (Figure): The Plotly Figure object to be converted.
+
+        Returns:
+            str: The HTML representation of the figure as a string.
+        """
+        with io.BytesIO() as bytes_buffer:
+            # Wrap the BytesIO with a TextIOWrapper to handle strings
+            with io.TextIOWrapper(bytes_buffer, encoding='utf-8') as text_buffer:
+                f.write_html(text_buffer)  # Write the figure to the text buffer
+                text_buffer.flush()  # Ensure all data is written
+                bytes_buffer.seek(0)  # Reset the buffer position to the beginning
+                return bytes_buffer.getvalue().decode('utf-8')  # Decode bytes to string and return
 
     async def _get_s3_client_async(self) -> Any:
         """
@@ -148,11 +190,16 @@ class S3Client:
         """
         try:
             
-            fig = args[0] if len(args) > 0 else None
+            if args:
+                fig = args[0] if len(args) > 0 else None
+                object_name = args[1] if len(args) > 1 else None
+            else:
+                fig = kwargs.get("fig", None) 
+                object_name = kwargs.get("object_name", None)
+            
             if fig is None:
                 raise Exception("Figure is None")
             
-            object_name = args[1] if len(args) > 1 else None
             if object_name is None:
                 raise Exception("Object name is None")
 
@@ -178,12 +225,12 @@ class S3Client:
 
             if format_file == "html":
                 # Convert the figure to SVG
-                file_text = html_from_figure(fig)
+                file_text = self._html_from_figure(fig)
                 # Upload the html text to s3
                 s3_resource.Bucket(self.bucket_name).Object(object_name).put(Body=file_text, ContentType=mimetypes)
             else:
                 # Convert the figure to bytes
-                file_buffer = bytes_from_figure(fig, format_file=format_file)
+                file_buffer = self._bytes_from_figure(fig, format_file=format_file)
                 # Upload the image bytes to S3
                 s3_resource.Bucket(self.bucket_name).Object(object_name).put(Body=file_buffer, ContentType=mimetypes)
 
@@ -212,11 +259,18 @@ class S3Client:
         """
         try:
 
-            df = args[0] if len(args) > 0 else None
+            if args:    
+                # Get the DataFrame and object name from the arguments
+                df = args[0] if len(args) > 0 else None
+                object_name = args[1] if len(args) > 1 else None
+            else:
+                # Get the DataFrame and object name from the keyword arguments
+                df = kwargs.get("df", None)
+                object_name = kwargs.get("object_name", None)
+
             if df is None:
                 raise Exception("Figure is None")
             
-            object_name = args[1] if len(args) > 1 else None
             if object_name is None:
                 raise Exception("Object name is None")
             
@@ -297,7 +351,7 @@ class S3Client:
             logger.error(f"Error deleting files: {str(e)}")
             raise Exception(f"Error deleting files: {str(e)}")
 
-    def upload_to_pdf(self, *args : Any) -> str:
+    def upload_to_pdf(self, *args : Any, **kwargs : Any) -> str:
         """
         Export the given text as a PDF and upload it to the S3 bucket.
 
@@ -310,13 +364,18 @@ class S3Client:
             str: Pre-signed URL for the uploaded PDF.
         """
         try:
-            text = args[0] if len(args) > 0 else None
-            if text is None:
-                raise Exception("Text is None")
+            if args:
+                text = args[0] if len(args) > 0 else None
+                object_name = args[1] if len(args) > 1 else None
+            else:
+                text = kwargs.get("text", None) 
+                object_name = kwargs.get("object_name", None)
             
-            object_name = args[1] if len(args) > 1 else None
+            if text is None:
+                    raise Exception("Text is None")    
+
             if object_name is None:
-                raise Exception("Object name is None")
+                    raise Exception("Object name is None")
 
             mimetypes = "application/pdf"
             s3_client = self._get_s3_client()
@@ -331,7 +390,7 @@ class S3Client:
                 
             # Write PDF to a bytes buffer
             with io.BytesIO() as pdf_buffer:
-                pdf_bytes = pdf.output(dest='S')
+                pdf_bytes = pdf.output(dest='S').encode('latin1')
                 pdf_buffer.write(pdf_bytes)
                 pdf_buffer.seek(0)
                 
@@ -359,7 +418,12 @@ class S3Client:
             str: The local path of the downloaded file.
         """
         try:
-            object_name = args[0] if len(args) > 0 else None
+            
+            if args:
+                object_name = args[0] if len(args) > 0 else None
+            else:
+                object_name = kwargs.get("object_name", None)
+            
             if object_name is None:
                 raise Exception("Object name is None")
             
