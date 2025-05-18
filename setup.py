@@ -2,11 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name="pyaws_s3",
-    version="1.0.0",
+    version="1.0.4",
     description="A package for AWS S3 utilities",
     author="Giuseppe Zileni",
     author_email="giuseppe.zileni@gmail,com",
     packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         "aioboto3==14.3.0",
         "aiobotocore==2.22.0",
