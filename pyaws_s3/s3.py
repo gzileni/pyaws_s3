@@ -8,7 +8,10 @@ import matplotlib.pyplot as plt
 from plotly.graph_objs import Figure
 from pandas.plotting import table
 from typing import Any, Literal
-from fpdf import FPDF
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
@@ -351,7 +354,7 @@ class S3Client:
             logger.error(f"Error deleting files: {str(e)}")
             raise Exception(f"Error deleting files: {str(e)}")
 
-    def upload_to_pdf(self, *args : Any, **kwargs : Any) -> str:
+    def upload_to_pdf(self, *args: Any, **kwargs: Any) -> str:
         """
         Export the given text as a PDF and upload it to the S3 bucket.
 
@@ -368,37 +371,60 @@ class S3Client:
                 text = args[0] if len(args) > 0 else None
                 object_name = args[1] if len(args) > 1 else None
             else:
-                text = kwargs.get("text", None) 
+                text = kwargs.get("text", None)
                 object_name = kwargs.get("object_name", None)
-            
+
             if text is None:
-                    raise Exception("Text is None")    
+                raise Exception("Text is None")
 
             if object_name is None:
-                    raise Exception("Object name is None")
+                raise Exception("Object name is None")
 
             mimetypes = "application/pdf"
             s3_client = self._get_s3_client()
             s3_resource = self._get_s3_resource()
-            
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_auto_page_break(auto=True, margin=15)
-            pdf.set_font("Arial", size=12)
-            for line in text.splitlines():
-                pdf.multi_cell(0, 10, line)
-                
-            # Write PDF to a bytes buffer
-            with io.BytesIO() as pdf_buffer:
-                pdf_bytes = pdf.output(dest='S').encode('latin1')
-                pdf_buffer.write(pdf_bytes)
-                pdf_buffer.seek(0)
-                
-                s3_resource.Bucket(self.bucket_name).Object(object_name).put(
-                    Body=pdf_buffer,
-                    ContentType=mimetypes
-                )
+
+            # Crea il PDF in memoria
+            pdf_buffer = BytesIO()
+            c = canvas.Canvas(pdf_buffer, pagesize=A4)
+            width, height = A4
+            c.setFont("Helvetica", 10)
+            x_margin = 20 * mm
+            y = height - 20 * mm
+
+            for line in text.strip().split('\n'):
+                line = line.strip()
+                if y < 20 * mm:
+                    c.showPage()
+                    c.setFont("Helvetica", 10)
+                    y = height - 20 * mm
+
+                # Markdown-style header detection
+                if line.startswith("### "):
+                    c.setFont("Helvetica-Bold", 11)
+                    line = line[4:]
+                elif line.startswith("## "):
+                    c.setFont("Helvetica-Bold", 12)
+                    line = line[3:]
+                elif line.startswith("# "):
+                    c.setFont("Helvetica-Bold", 14)
+                    line = line[2:]
+                else:
+                    c.setFont("Helvetica", 10)
+
+                c.drawString(x_margin, y, line)
+                y -= 12
+
+            c.save()
+            pdf_buffer.seek(0)
+
+            # Upload su S3
+            s3_resource.Bucket(self.bucket_name).Object(object_name).put(
+                Body=pdf_buffer,
+                ContentType=mimetypes
+            )
             return self._create_url(s3_client, self.bucket_name, object_name)
+
         except Exception as e:
             logger.error(f"Error exporting PDF: {str(e)}")
             raise Exception(f"Error exporting PDF: {str(e)}")
