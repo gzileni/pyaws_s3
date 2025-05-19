@@ -495,10 +495,18 @@ class S3Client:
             objects = s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
 
             # Check if the bucket contains any objects
+            docs : list[str] = []
             if 'Contents' in objects:
-                return [obj['Key'] for obj in objects['Contents'] if filter in obj['Key']]
-            else:
-                return []
+                for obj in objects['Contents']:
+                    if obj['Key']:
+                        # Log the object key
+                        if filter is not None:
+                            if filter in obj['Key']:
+                                logger.info(f"Object: {obj['Key']}")
+                                docs.append(obj['Key'])
+                        else:
+                            docs.append(obj['Key'])
+            return docs
         except Exception as e:
             logger.error(f"Error listing files: {str(e)}")
             raise Exception(f"Error listing files: {str(e)}")
