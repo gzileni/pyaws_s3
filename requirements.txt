@@ -22,8 +22,8 @@ kiwisolver==1.4.8
 matplotlib==3.10.3
 multidict==6.4.3
 narwhals==1.39.1
-numpy==2.2.5
-packaging==23.2
+numpy>=1.22
+packaging>=23.2
 pandas==2.2.3
 pillow==11.2.1
 plotly==6.1.0
