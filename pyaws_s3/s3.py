@@ -470,7 +470,7 @@ class S3Client:
             logger.error(f"Error downloading file: {str(e)}")
             raise Exception(f"Error downloading file: {str(e)}")
         
-    def list_files(self, *args : Any) -> list[str]:
+    def list_files(self, *args: Any, **kwargs : Any) -> list[str]:
         """
         List all files in the S3 bucket.
 
@@ -482,9 +482,17 @@ class S3Client:
             list[str]: List of file names in the S3 bucket.
         """
         try:
-            filter = args[0] if len(args) > 0 else None
+            prefix = args[0] if args else None
+            if prefix is None:
+                prefix = kwargs.get("prefix", None) 
+                
+            if prefix is None:
+                raise Exception("Prefix is None")    
+                
+            filter = kwargs.get("filter", None)
+            
             s3_client = self._get_s3_client()
-            objects = s3_client.list_objects_v2(Bucket=self.bucket_name)
+            objects = s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
 
             # Check if the bucket contains any objects
             if 'Contents' in objects:
