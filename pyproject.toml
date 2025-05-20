@@ -3,8 +3,8 @@ requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyaws_s3"
-version = "1.0.17"
+name = "pyaws-s3"
+version = "1.0.18"
 description = "A Python package for AWS S3 utilities"
 authors = [
     { name="Giuseppe Zileni", email="giuseppe.zileni@gmail.com" }
