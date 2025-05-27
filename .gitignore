@@ -18,3 +18,6 @@ __pycache__/
 .vscode/
 requirements.txt
 test.py
+deploy.sh
+install_build.sh
+pypi_deploy.sh

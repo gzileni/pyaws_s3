@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyaws-s3"
-version = "1.0.18"
+version = "1.0.19"
 description = "A Python package for AWS S3 utilities"
 authors = [
     { name="Giuseppe Zileni", email="giuseppe.zileni@gmail.com" }
 ]
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 license-files = ["LICENSE.md"]
 keywords = ["aws", "s3", "utilities"]
 classifiers = ['Programming Language :: Python :: 3', 'Operating System :: OS Independent']
