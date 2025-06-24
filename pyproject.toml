@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyaws-s3"
-version = "1.0.21"
+version = "1.0.22"
 description = "A Python package for AWS S3 utilities"
 authors = [
     { name="Giuseppe Zileni", email="giuseppe.zileni@gmail.com" }

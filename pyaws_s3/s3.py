@@ -172,6 +172,65 @@ class S3Client:
         logger.info(f"Pre-signed URL: {temp_url}")
 
         return temp_url
+    
+    def upload_bytes(self, *args, **kwargs: Any) -> str:
+        """
+        Upload a Plotly Figure as a PNG image to an S3 bucket and generate a pre-signed URL.
+
+        Args:
+            fig (Figure): The Plotly Figure object to upload.
+            bucket_name (str): The name of the S3 bucket.
+            object_name (str): The name of the S3 object.
+
+        Keyword Args:
+            format_file (str): Format of the image. Defaults to 'png'.
+
+        Returns:
+            str: Pre-signed URL for the uploaded image.
+
+        Raises:
+            Exception: If there is an error uploading the image.
+        """
+        try:
+            
+            if args:
+                bytes_data = args[0] if len(args) > 0 else None
+                object_name = args[1] if len(args) > 1 else None
+            else:
+                bytes_data = kwargs.get("bytes_data", None) 
+                object_name = kwargs.get("object_name", None)
+            
+            if bytes_data is None:
+                raise Exception("Figure is None")
+            
+            if object_name is None:
+                raise Exception("Object name is None")
+
+            format_file : FormatFile = kwargs.get("format_file", "pdf")
+            mimetypes = "application/pdf"
+            
+            if format_file not in ["png", "jpeg", "svg", "html", "pdf"]:
+                raise Exception("Invalid format_file provided. Supported formats are: png, jpeg, svg, html, pdf")
+            if format_file == "png":
+                mimetypes = "image/png"
+            elif format_file == "jpeg":
+                mimetypes = "image/jpeg"
+            elif format_file == "svg":
+                mimetypes = "image/svg+xml"
+            elif format_file == "html":
+                mimetypes = "text/html"
+            elif format_file == "pdf":
+                mimetypes = "application/pdf"
+            else:
+                raise Exception("Invalid MIME type provided")
+            
+            s3_resource = self._get_s3_resource()
+            
+            s3_resource.Bucket(self.bucket_name).Object(object_name).put(Body=bytes_data, ContentType=mimetypes)
+
+        except Exception as e:
+            logger.error(f"Error uploading image: {str(e)}")
+            raise Exception(f"Error uploading image: {str(e)}")
 
     def upload_image(self, *args, **kwargs: Any) -> str:
         """
