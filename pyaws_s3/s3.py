@@ -178,18 +178,17 @@ class S3Client:
         Upload a Plotly Figure as a PNG image to an S3 bucket and generate a pre-signed URL.
 
         Args:
-            fig (Figure): The Plotly Figure object to upload.
-            bucket_name (str): The name of the S3 bucket.
+            bytes_data (bytes): The bytes data of the image to upload.
             object_name (str): The name of the S3 object.
+            format_file (str): Format of the image. Defaults to 'pdf' ["png", "jpeg", "svg", "html", "pdf"]. 
+        Raises:
+            Exception: If there is an error uploading the image.
 
         Keyword Args:
             format_file (str): Format of the image. Defaults to 'png'.
 
         Returns:
             str: Pre-signed URL for the uploaded image.
-
-        Raises:
-            Exception: If there is an error uploading the image.
         """
         try:
             
