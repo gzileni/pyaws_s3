@@ -173,7 +173,7 @@ class S3Client:
 
         return temp_url
     
-    def upload_bytes(self, *args, **kwargs: Any) -> str:
+    def upload_bytes(self, *args, **kwargs: Any):
         """
         Upload a Plotly Figure as a PNG image to an S3 bucket and generate a pre-signed URL.
 
