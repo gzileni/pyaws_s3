@@ -224,9 +224,8 @@ class S3Client:
                 raise Exception("Invalid MIME type provided")
             
             s3_resource = self._get_s3_resource()
-            
             s3_resource.Bucket(self.bucket_name).Object(object_name).put(Body=bytes_data, ContentType=mimetypes)
-
+            
         except Exception as e:
             logger.error(f"Error uploading image: {str(e)}")
             raise Exception(f"Error uploading image: {str(e)}")
@@ -449,29 +448,47 @@ class S3Client:
             c.setFont("Helvetica", 10)
             x_margin = 20 * mm
             y = height - 20 * mm
+            max_width = width - 2 * x_margin
+
+            def split_line(line, font_name, font_size):
+                # Divide la riga in più righe se supera la larghezza massima
+                words = line.split()
+                lines = []
+                current = ""
+                for word in words:
+                    test = current + (" " if current else "") + word
+                    if c.stringWidth(test, font_name, font_size) <= max_width:
+                        current = test
+                    else:
+                        if current:
+                            lines.append(current)
+                        current = word
+                if current:
+                    lines.append(current)
+                return lines
 
             for line in text.strip().split('\n'):
                 line = line.strip()
-                if y < 20 * mm:
-                    c.showPage()
-                    c.setFont("Helvetica", 10)
-                    y = height - 20 * mm
-
                 # Markdown-style header detection
                 if line.startswith("### "):
-                    c.setFont("Helvetica-Bold", 11)
+                    font_name, font_size = "Helvetica-Bold", 11
                     line = line[4:]
                 elif line.startswith("## "):
-                    c.setFont("Helvetica-Bold", 12)
+                    font_name, font_size = "Helvetica-Bold", 12
                     line = line[3:]
                 elif line.startswith("# "):
-                    c.setFont("Helvetica-Bold", 14)
+                    font_name, font_size = "Helvetica-Bold", 14
                     line = line[2:]
                 else:
-                    c.setFont("Helvetica", 10)
+                    font_name, font_size = "Helvetica", 10
 
-                c.drawString(x_margin, y, line)
-                y -= 12
+                for subline in split_line(line, font_name, font_size):
+                    if y < 20 * mm + font_size:
+                        c.showPage()
+                        y = height - 20 * mm
+                    c.setFont(font_name, font_size)
+                    c.drawString(x_margin, y, subline)
+                    y -= font_size + 2  # Spazio tra le righe
 
             c.save()
             pdf_buffer.seek(0)
