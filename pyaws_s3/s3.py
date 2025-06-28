@@ -42,6 +42,25 @@ class S3Client:
         self.region_name = kwargs.get("region_name", os.getenv("AWS_REGION"))
         self.bucket_name = kwargs.get("bucket_name", os.getenv("AWS_BUCKET_NAME"))
 
+    # crea una funzione per verifica la presenza di un file nel bucket
+    def file_exists(self, object_name: str) -> bool:
+        """
+        Check if a file exists in the S3 bucket.
+
+        Args:
+            object_name (str): The name of the S3 object to check.
+
+        Returns:
+            bool: True if the file exists, False otherwise.
+        """
+        s3_client = self._get_s3_client()
+        try:
+            s3_client.head_object(Bucket=self.bucket_name, Key=object_name)
+            return True
+        except Exception as e:
+            logger.error(f"Error checking file existence: {str(e)}")
+            return False
+
     def _bytes_from_figure(self, f: Figure, **kwargs) -> bytes:
         """
         Convert a Plotly Figure to a PNG image as bytes.
@@ -181,6 +200,8 @@ class S3Client:
             bytes_data (bytes): The bytes data of the image to upload.
             object_name (str): The name of the S3 object.
             format_file (str): Format of the image. Defaults to 'pdf' ["png", "jpeg", "svg", "html", "pdf"]. 
+            overwrite (bool): If True, overwrite the existing file in S3. Defaults to False.
+            presigned_url (bool): If True, generate a pre-signed URL for the uploaded image. Defaults to False.
         Raises:
             Exception: If there is an error uploading the image.
 
@@ -198,6 +219,9 @@ class S3Client:
             else:
                 bytes_data = kwargs.get("bytes_data", None) 
                 object_name = kwargs.get("object_name", None)
+                
+            overwrite = kwargs.get("overwrite", False)
+            presigned_url = kwargs.get("presigned_url", False)
             
             if bytes_data is None:
                 raise Exception("Figure is None")
@@ -207,6 +231,16 @@ class S3Client:
 
             format_file : FormatFile = kwargs.get("format_file", "pdf")
             mimetypes = "application/pdf"
+            
+            # Get S3 client and resource
+            s3_client = self._get_s3_client()
+            s3_resource = self._get_s3_resource()
+            
+            if not overwrite and self.file_exists(object_name):
+                print(f"File {object_name} already exists in the bucket {self.bucket_name}. Use overwrite=True to overwrite it.")
+                if presigned_url:
+                    return self._create_url(s3_client, self.bucket_name, object_name)
+                return object_name
             
             if format_file not in ["png", "jpeg", "svg", "html", "pdf"]:
                 raise Exception("Invalid format_file provided. Supported formats are: png, jpeg, svg, html, pdf")
@@ -223,9 +257,8 @@ class S3Client:
             else:
                 raise Exception("Invalid MIME type provided")
             
-            s3_resource = self._get_s3_resource()
             s3_resource.Bucket(self.bucket_name).Object(object_name).put(Body=bytes_data, ContentType=mimetypes)
-            
+            return self._create_url(s3_client, self.bucket_name, object_name)
         except Exception as e:
             logger.error(f"Error uploading image: {str(e)}")
             raise Exception(f"Error uploading image: {str(e)}")
@@ -238,6 +271,11 @@ class S3Client:
             fig (Figure): The Plotly Figure object to upload.
             bucket_name (str): The name of the S3 bucket.
             object_name (str): The name of the S3 object.
+            format_file (str): Format of the image. Defaults to 'png' ["png", "jpeg", "svg", "html"].
+            overwrite (bool): If True, overwrite the existing file in S3. Defaults to False.
+            presigned_url (bool): If True, generate a pre-signed URL for the uploaded image. Defaults to False.
+        Raises:
+            Exception: If there is an error uploading the image.
 
         Keyword Args:
             format_file (str): Format of the image. Defaults to 'png'.
@@ -256,6 +294,13 @@ class S3Client:
             else:
                 fig = kwargs.get("fig", None) 
                 object_name = kwargs.get("object_name", None)
+                
+            overwrite = kwargs.get("overwrite", False)
+            presigned_url = kwargs.get("presigned_url", False)
+            
+            # Get S3 client and resource
+            s3_client = self._get_s3_client()
+            s3_resource = self._get_s3_resource()
             
             if fig is None:
                 raise Exception("Figure is None")
@@ -265,6 +310,12 @@ class S3Client:
 
             format_file : FormatFile = kwargs.get("format_file", "svg")
             mimetypes = "image/svg+xml"
+            
+            if not overwrite and self.file_exists(object_name):
+                print(f"File {object_name} already exists in the bucket {self.bucket_name}. Use overwrite=True to overwrite it.")
+                if presigned_url:
+                    return self._create_url(s3_client, self.bucket_name, object_name)
+                return object_name
             
             if format_file not in ["png", "jpeg", "svg", "html"]:
                 raise Exception("Invalid format_file provided. Supported formats are: png, jpeg, svg, html")
@@ -278,10 +329,6 @@ class S3Client:
                 mimetypes = "text/html"
             else:
                 raise Exception("Invalid MIME type provided")
-
-            # Get S3 client and resource
-            s3_client = self._get_s3_client()
-            s3_resource = self._get_s3_resource()
 
             if format_file == "html":
                 # Convert the figure to SVG
@@ -310,6 +357,10 @@ class S3Client:
             **kwargs (Any): Additional keyword arguments for AWS credentials, bucket name, and object name.
             Keyword Args:
                 format_file (str): Format of the file. Defaults to 'xlsx'.
+                overwrite (bool): If True, overwrite the existing file in S3. Defaults to False.
+                presigned_url (bool): If True, generate a pre-signed URL for the uploaded file. Defaults to False.
+        Raises:
+            Exception: If there is an error uploading the file.
         
         Returns:
             str: Pre-signed URL for the uploaded file.
@@ -327,6 +378,9 @@ class S3Client:
                 # Get the DataFrame and object name from the keyword arguments
                 df = kwargs.get("df", None)
                 object_name = kwargs.get("object_name", None)
+                
+            overwrite = kwargs.get("overwrite", False)
+            presigned_url = kwargs.get("presigned_url", False)
 
             if df is None:
                 raise Exception("Figure is None")
@@ -348,8 +402,15 @@ class S3Client:
             else:
                 raise Exception("Invalid MIME type provided")
 
+            # Get S3 client and resource
             s3_client = self._get_s3_client()
             s3_resource = self._get_s3_resource()
+            
+            if not overwrite and self.file_exists(object_name):
+                print(f"File {object_name} already exists in the bucket {self.bucket_name}. Use overwrite=True to overwrite it.")
+                if presigned_url:
+                    return self._create_url(s3_client, self.bucket_name, object_name)
+                return object_name
 
             # Create a file buffer
             ext: str = ""
@@ -418,8 +479,12 @@ class S3Client:
         Args:
             text (str): The text to write in the PDF.
             object_name (str): The name of the S3 object.
+            presigned_url (bool): If True, generate a pre-signed URL for the uploaded PDF. Defaults to False.
+            overwrite (bool): If True, overwrite the existing file in S3. Defaults to False
+            
         Raises:
             Exception: If there is an error exporting the PDF.
+            
         Returns:
             str: Pre-signed URL for the uploaded PDF.
         """
@@ -430,6 +495,9 @@ class S3Client:
             else:
                 text = kwargs.get("text", None)
                 object_name = kwargs.get("object_name", None)
+                
+            overwrite = kwargs.get("overwrite", False)
+            presigned_url = kwargs.get("presigned_url", False)
 
             if text is None:
                 raise Exception("Text is None")
@@ -438,8 +506,15 @@ class S3Client:
                 raise Exception("Object name is None")
 
             mimetypes = "application/pdf"
+            # Get S3 client and resource
             s3_client = self._get_s3_client()
             s3_resource = self._get_s3_resource()
+            
+            if not overwrite and self.file_exists(object_name):
+                print(f"File {object_name} already exists in the bucket {self.bucket_name}. Use overwrite=True to overwrite it.")
+                if presigned_url:
+                    return self._create_url(s3_client, self.bucket_name, object_name)
+                return object_name
 
             # Crea il PDF in memoria
             pdf_buffer = BytesIO()
