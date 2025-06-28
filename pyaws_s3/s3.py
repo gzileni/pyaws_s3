@@ -192,7 +192,7 @@ class S3Client:
 
         return temp_url
     
-    def upload_bytes(self, *args, **kwargs: Any):
+    def upload_bytes(self, *args, **kwargs: Any) -> tuple[str, bool]:
         """
         Upload a Plotly Figure as a PNG image to an S3 bucket and generate a pre-signed URL.
 
@@ -239,8 +239,8 @@ class S3Client:
             if not overwrite and self.file_exists(object_name):
                 print(f"File {object_name} already exists in the bucket {self.bucket_name}. Use overwrite=True to overwrite it.")
                 if presigned_url:
-                    return self._create_url(s3_client, self.bucket_name, object_name)
-                return object_name
+                    return self._create_url(s3_client, self.bucket_name, object_name), False
+                return object_name, False
             
             if format_file not in ["png", "jpeg", "svg", "html", "pdf"]:
                 raise Exception("Invalid format_file provided. Supported formats are: png, jpeg, svg, html, pdf")
@@ -258,12 +258,12 @@ class S3Client:
                 raise Exception("Invalid MIME type provided")
             
             s3_resource.Bucket(self.bucket_name).Object(object_name).put(Body=bytes_data, ContentType=mimetypes)
-            return self._create_url(s3_client, self.bucket_name, object_name)
+            return self._create_url(s3_client, self.bucket_name, object_name), True
         except Exception as e:
             logger.error(f"Error uploading image: {str(e)}")
             raise Exception(f"Error uploading image: {str(e)}")
 
-    def upload_image(self, *args, **kwargs: Any) -> str:
+    def upload_image(self, *args, **kwargs: Any) -> tuple[str, bool]:
         """
         Upload a Plotly Figure as a PNG image to an S3 bucket and generate a pre-signed URL.
 
@@ -314,8 +314,8 @@ class S3Client:
             if not overwrite and self.file_exists(object_name):
                 print(f"File {object_name} already exists in the bucket {self.bucket_name}. Use overwrite=True to overwrite it.")
                 if presigned_url:
-                    return self._create_url(s3_client, self.bucket_name, object_name)
-                return object_name
+                    return self._create_url(s3_client, self.bucket_name, object_name), False
+                return object_name, False
             
             if format_file not in ["png", "jpeg", "svg", "html"]:
                 raise Exception("Invalid format_file provided. Supported formats are: png, jpeg, svg, html")
@@ -342,13 +342,13 @@ class S3Client:
                 s3_resource.Bucket(self.bucket_name).Object(object_name).put(Body=file_buffer, ContentType=mimetypes)
 
             # Generate and return a pre-signed URL for the uploaded image
-            return self._create_url(s3_client, self.bucket_name, object_name)
+            return self._create_url(s3_client, self.bucket_name, object_name), True
 
         except Exception as e:
             logger.error(f"Error uploading image: {str(e)}")
             raise Exception(f"Error uploading image: {str(e)}")
 
-    def upload_from_dataframe(self, *args : Any, **kwargs: Any) -> str:
+    def upload_from_dataframe(self, *args : Any, **kwargs: Any) -> tuple[str, bool]:
         """
         Upload a DataFrame as an Excel file to an S3 bucket and generate a pre-signed URL.
 
@@ -409,8 +409,8 @@ class S3Client:
             if not overwrite and self.file_exists(object_name):
                 print(f"File {object_name} already exists in the bucket {self.bucket_name}. Use overwrite=True to overwrite it.")
                 if presigned_url:
-                    return self._create_url(s3_client, self.bucket_name, object_name)
-                return object_name
+                    return self._create_url(s3_client, self.bucket_name, object_name), False
+                return object_name, False
 
             # Create a file buffer
             ext: str = ""
@@ -441,7 +441,7 @@ class S3Client:
 
             logger.info(f"Uploaded file to S3: {object_name}")
 
-            return self._create_url(s3_client, self.bucket_name, object_name)
+            return self._create_url(s3_client, self.bucket_name, object_name), True
         except Exception as e:
             logger.error(f"Error uploading file: {str(e)}")
             raise Exception(f"Error uploading file: {str(e)}")
@@ -472,7 +472,7 @@ class S3Client:
             logger.error(f"Error deleting files: {str(e)}")
             raise Exception(f"Error deleting files: {str(e)}")
 
-    def upload_to_pdf(self, *args: Any, **kwargs: Any) -> str:
+    def upload_to_pdf(self, *args: Any, **kwargs: Any) -> tuple[str, bool]:
         """
         Export the given text as a PDF and upload it to the S3 bucket.
 
@@ -513,8 +513,8 @@ class S3Client:
             if not overwrite and self.file_exists(object_name):
                 print(f"File {object_name} already exists in the bucket {self.bucket_name}. Use overwrite=True to overwrite it.")
                 if presigned_url:
-                    return self._create_url(s3_client, self.bucket_name, object_name)
-                return object_name
+                    return self._create_url(s3_client, self.bucket_name, object_name), False
+                return object_name, False
 
             # Crea il PDF in memoria
             pdf_buffer = BytesIO()
@@ -573,7 +573,7 @@ class S3Client:
                 Body=pdf_buffer,
                 ContentType=mimetypes
             )
-            return self._create_url(s3_client, self.bucket_name, object_name)
+            return self._create_url(s3_client, self.bucket_name, object_name), True
 
         except Exception as e:
             logger.error(f"Error exporting PDF: {str(e)}")
