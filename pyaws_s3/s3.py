@@ -619,7 +619,35 @@ class S3Client:
         except Exception as e:
             logger.error(f"Error downloading file: {str(e)}")
             raise Exception(f"Error downloading file: {str(e)}")
-        
+    
+    # aggiungi una funzione che cancella tutti i file in un bucket S3 e la sottocartella specificata
+    async def delete_all_async(self, filter : str | None = None) -> None:   
+        """
+        Delete all files from an S3 bucket asynchronously.
+
+        Args:
+            filter (str | None): Optional filter to delete specific files. If None, all files will be deleted.
+        Raises:
+            Exception: If there is an error deleting the files.
+        """
+        try:
+            s3_client = await self._get_s3_client_async()
+
+            # List all objects in the bucket
+            objects = await s3_client.list_objects_v2(Bucket=self.bucket_name)
+
+            # Check if the bucket contains any objects
+            if 'Contents' in objects:
+                for obj in objects['Contents']:
+                    if filter in obj['Key']:
+                        # Delete each object
+                        await s3_client.delete_object(Bucket=self.bucket_name, Key=obj['Key'])
+                        print(f"Deleted {obj['Key']}")
+                        
+        except Exception as e:
+            logger.error(f"Error deleting files: {str(e)}")
+            raise Exception(f"Error deleting files: {str(e)}")
+    
     def list_files(self, *args: Any, **kwargs : Any) -> list[str]:
         """
         List all files in the S3 bucket.
