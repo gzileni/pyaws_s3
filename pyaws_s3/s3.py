@@ -446,28 +446,52 @@ class S3Client:
             logger.error(f"Error uploading file: {str(e)}")
             raise Exception(f"Error uploading file: {str(e)}")
 
-    async def delete_all(self, filter : str | None = None) -> None:
+    async def delete_all(self, **kwargs) -> None:
         """
         Delete all files from an S3 bucket.
 
         Args:
             filter (str | None): Optional filter to delete specific files. If None, all files will be deleted.
+            prefix (str | None): Optional prefix to filter files by their key. If None, all files will be deleted.
+            
         Raises:
             Exception: If there is an error deleting the files.
         """
         try:
             s3_client = self._get_s3_client()
+            
+            prefix = kwargs.get("prefix", None)
+            filter = kwargs.get("filter", None)
+            
+            if prefix is not None and not prefix.endswith('/'):
+                prefix += '/'
 
             # List all objects in the bucket
-            objects = s3_client.list_objects_v2(Bucket=self.bucket_name)
+            objects = None
+            if prefix is None:
+                # List all objects in the bucket
+                objects = s3_client.list_objects_v2(Bucket=self.bucket_name)
+            else:
+                # List objects with the specified prefix
+                logger.info(f"Listing objects with prefix: {prefix}")
+                objects = s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
 
             # Check if the bucket contains any objects
             if 'Contents' in objects:
                 for obj in objects['Contents']:
-                    if filter in obj['Key']:
-                        # Delete each object
+                    if filter is not None:
+                        if filter in obj['Key']:
+                            # Delete each object
+                            s3_client.delete_object(Bucket=self.bucket_name, Key=obj['Key'])
+                            print(f"Deleted {obj['Key']}")
+                    else:
+                        logger.info(f"Skipping {obj['Key']} as it does not match the filter: {filter}")
                         s3_client.delete_object(Bucket=self.bucket_name, Key=obj['Key'])
                         print(f"Deleted {obj['Key']}")
+            else:
+                logger.info("No objects found in the bucket.")
+            
+            print("All files deleted successfully.")
         except Exception as e:
             logger.error(f"Error deleting files: {str(e)}")
             raise Exception(f"Error deleting files: {str(e)}")
@@ -620,40 +644,13 @@ class S3Client:
             logger.error(f"Error downloading file: {str(e)}")
             raise Exception(f"Error downloading file: {str(e)}")
     
-    # aggiungi una funzione che cancella tutti i file in un bucket S3 e la sottocartella specificata
-    async def delete_all_async(self, filter : str | None = None) -> None:   
-        """
-        Delete all files from an S3 bucket asynchronously.
-
-        Args:
-            filter (str | None): Optional filter to delete specific files. If None, all files will be deleted.
-        Raises:
-            Exception: If there is an error deleting the files.
-        """
-        try:
-            s3_client = await self._get_s3_client_async()
-
-            # List all objects in the bucket
-            objects = await s3_client.list_objects_v2(Bucket=self.bucket_name)
-
-            # Check if the bucket contains any objects
-            if 'Contents' in objects:
-                for obj in objects['Contents']:
-                    if filter in obj['Key']:
-                        # Delete each object
-                        await s3_client.delete_object(Bucket=self.bucket_name, Key=obj['Key'])
-                        print(f"Deleted {obj['Key']}")
-                        
-        except Exception as e:
-            logger.error(f"Error deleting files: {str(e)}")
-            raise Exception(f"Error deleting files: {str(e)}")
-    
     def list_files(self, *args: Any, **kwargs : Any) -> list[str]:
         """
         List all files in the S3 bucket.
 
         Args:
             filter (str | None): Optional filter to list specific files. If None, all files will be listed.
+            prefix (str | None): Optional prefix to filter files by their key. If None, all files will be listed.
         Raises:
             Exception: If there is an error listing the files.
         Returns:
@@ -667,9 +664,14 @@ class S3Client:
             if prefix is None:
                 raise Exception("Prefix is None")    
                 
+            if prefix is not None and not prefix.endswith('/'):
+                prefix += '/'
+                
             filter = kwargs.get("filter", None)
             
             s3_client = self._get_s3_client()
+            
+            logger.info(f"Listing objects with prefix: {prefix}")
             objects = s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
 
             # Check if the bucket contains any objects
@@ -677,7 +679,6 @@ class S3Client:
             if 'Contents' in objects:
                 for obj in objects['Contents']:
                     if obj['Key']:
-                        # Log the object key
                         if filter is not None:
                             if filter in obj['Key']:
                                 logger.info(f"Object: {obj['Key']}")
@@ -689,12 +690,14 @@ class S3Client:
             logger.error(f"Error listing files: {str(e)}")
             raise Exception(f"Error listing files: {str(e)}")
         
-    def delete_file(self, *args : Any) -> None: 
+    def delete_file(self, *args : Any, **kwargs) -> None: 
         """
         Delete a file from the S3 bucket.
 
         Args:
             object_name (str): The name of the S3 object to delete.
+            prefix (str | None): Optional prefix to filter files by their key. If None, all files will be deleted.
+            filter (str | None): Optional filter to delete specific files. If None, the specified
         Raises:
             Exception: If there is an error deleting the file.
         """
@@ -703,8 +706,35 @@ class S3Client:
             if object_name is None:
                 raise Exception("Object name is None")
             
+            prefix = kwargs.get("prefix", None)
+            if prefix is not None and not prefix.endswith('/'):
+                prefix += '/'
+                
+            filter = kwargs.get("filter", None)
+                
             s3_client = self._get_s3_client()
-            s3_client.delete_object(Bucket=self.bucket_name, Key=object_name)
+            
+            objects = None
+            if prefix is None:
+                # List all objects in the bucket
+                objects = s3_client.list_objects_v2(Bucket=self.bucket_name)
+            else:
+                # List objects with the specified prefix
+                logger.info(f"Listing objects with prefix: {prefix}")
+                objects = s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
+            
+            # Check if the bucket contains any objects
+            if 'Contents' in objects:
+                for obj in objects['Contents']:
+                    if filter is not None:
+                        if filter in obj['Key']:
+                            # Delete each object
+                            s3_client.delete_object(Bucket=self.bucket_name, Key=obj['Key'])
+                            print(f"Deleted {obj['Key']}")
+                    else:
+                        # If no objects match the filter, delete the specified object
+                        s3_client.delete_object(Bucket=self.bucket_name, Key=object_name)
+                        print(f"Deleted {object_name}")
         except Exception as e:
             logger.error(f"Error deleting file: {str(e)}")
             raise Exception(f"Error deleting file: {str(e)}")
